@@ -11,7 +11,7 @@ magic_bytes = b"Eg\x89\xab"
 Nd = 4
 
 
-def unpack_barspec(filelist_iter, loc=""):
+def unpack_bar3ptfn(filelist_iter, loc=""):
     data = rec_dd()
     data_trev = rec_dd()
 
@@ -21,14 +21,15 @@ def unpack_barspec(filelist_iter, loc=""):
         if head[:4] != magic_bytes:
             raise IOError("Record header missing magic bytes.")
 
-        if not head[16:].startswith(b"qcdsfDir"):
-            raise IOError("Missing qcdsfDir record")
+        if not head[16:].startswith(b"meta-xml"):
+            raise IOError("Missing meta-xml record")
 
         tree = ET.ElementTree(ET.fromstring(record.decode("utf-8", "ignore")))
         root = tree.getroot()
         latt_size = [
             int(s)
-            for s in root.find("ProgramInfo")
+            for s in root.find("bar3ptfn")
+            .find("ProgramInfo")
             .find("Setgeom")
             .find("latt_size")
             .text.split(" ")
@@ -37,7 +38,7 @@ def unpack_barspec(filelist_iter, loc=""):
         latt_size_str = "x".join(
             str(x) for x in latt_size if not (x in seen or seen.add(x))
         )
-        time_rev = root.find("Input").find("Param").find("time_rev").text == "true"
+        deriv_max = int(root.find("Input").find("Param").find("deriv").text)
 
         mom2_max = int(root.find("Input").find("Param").find("mom2_max").text)
         num_mom, mom_list = cf.CountMom(mom2_max, Nd)

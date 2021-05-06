@@ -10,8 +10,17 @@ import collections
 magic_bytes = b"Eg\x89\xab"
 Nd = 4
 
+# Unpack bar3ptfn lime files into pickled arrays.
+# transition_form: label masses by {kin}t{kout}_{ki}..., where kin and kout are
+# masses of propagators before and after current insertion.
+# if false and kin=kout, label as {kcur}_{ki}..., where kcur is the mass of the
+# propagator on which current is inserted.
+# simplify: if true, label masses by {ki}... for unique ki, i.e. only listing all
+# unique masses with no distinguishing current from forward props.
+# NOTE simplify overrides transition_form
 
-def unpack_barspec(filelist_iter, loc=""):
+
+def unpack_bar3ptfn(filelist_iter, loc="", transition_form=False, simplify=False):
     data = rec_dd()
     data_trev = rec_dd()
 
@@ -21,14 +30,15 @@ def unpack_barspec(filelist_iter, loc=""):
         if head[:4] != magic_bytes:
             raise IOError("Record header missing magic bytes.")
 
-        if not head[16:].startswith(b"qcdsfDir"):
-            raise IOError("Missing qcdsfDir record")
+        if not head[16:].startswith(b"meta-xml"):
+            raise IOError("Missing meta-xml record")
 
         tree = ET.ElementTree(ET.fromstring(record.decode("utf-8", "ignore")))
         root = tree.getroot()
         latt_size = [
             int(s)
-            for s in root.find("ProgramInfo")
+            for s in root.find("bar3ptfn")
+            .find("ProgramInfo")
             .find("Setgeom")
             .find("latt_size")
             .text.split(" ")
@@ -37,10 +47,112 @@ def unpack_barspec(filelist_iter, loc=""):
         latt_size_str = "x".join(
             str(x) for x in latt_size if not (x in seen or seen.add(x))
         )
-        time_rev = root.find("Input").find("Param").find("time_rev").text == "true"
+        deriv_max = int(
+            root.find("bar3ptfn").find("Input").find("Param").find("deriv").text
+        )
 
-        mom2_max = int(root.find("Input").find("Param").find("mom2_max").text)
+        mom2_max = int(
+            root.find("bar3ptfn").find("Input").find("Param").find("mom2_max").text
+        )
         num_mom, mom_list = cf.CountMom(mom2_max, Nd)
+
+        seqsrc = (
+            root.find("bar3ptfn")
+            .find("Wilson_3Pt_fn_measurements")
+            .find("Sequential_source")
+            .findall("elem")
+        )
+
+        seqsrc_type = [
+            x.find("SequentialProp_record_info")
+            .find("SequentialProp")
+            .find("SeqSource")
+            .find("SeqSource")
+            .find("SeqSourceType")
+            .text
+            for x in seqsrc
+        ]
+
+        forward_props = (
+            root.find("bar3ptfn")
+            .find("Wilson_3Pt_fn_measurements")
+            .find("Sequential_source")
+            .find("elem")
+            .find("SequentialProp_record_info")
+            .find("SequentialProp")
+            .find("ForwardProps")
+            .findall("elem")
+        )
+
+        forward_κ = [
+            float(x.find("ForwardProp").find("FermionAction").find("Kappa").text)
+            for x in forwar_props
+        ]
+        current_κ_in = float(
+            root.find("bar3ptfn")
+            .find("Propagator_record_info")
+            .find("Propagator")
+            .find("ForwardProp")
+            .find("FermionAction")
+            .find("Kappa")
+            .text
+        )
+
+        current_κ_out = [
+            float(
+                x.find("SequentialProp_record_info")
+                .find("SequentialProp")
+                .find("SeqProp")
+                .find("FermionAction")
+                .find("Kappa")
+                .text
+            )
+            for x in seqsrc
+        ]
+
+        if simplify:
+            κ_simplified = [
+                set(forward_κ + [current_κ_in] + [x]) for x in current_κ_out
+            ]
+            κ_string = [sum([FormatKappa(k) for k in x]) for x in κ_simplified]
+
+        elif (transition_form) or (~all([x == current_κ_in for x in current_κ_out])):
+            κ_string = [
+                FormatKappa(current_κ_in)
+                + "t"
+                + FormatKappa(x)
+                + "_"
+                + sum([FormatKappa(y) for y in forward_κ])
+                for x in current_κ_out
+            ]
+
+        else:
+            κ_string = [
+                "c" + FormatKappa(x) + "_" + sum([FormatKappa(y) for y in forward_κ])
+                for x in current_κ_out
+            ]
+
+        ferm_act_string = (
+            root.find("bar3ptfn")
+            .find("Propagator_record_info")
+            .find("Propagator")
+            .find("ForwardProp")
+            .find("FermionAction")
+            .find("FermAct")
+            .text.lower()
+        )
+        if ferm_act_string == "clover":
+            clover_coeff = (
+                root.find("bar3ptfn")
+                .find("Propagator_record_info")
+                .find("Propagator")
+                .find("ForwardProp")
+                .find("FermionAction")
+                .find("clovCoeff")
+                .text.lstrip("0")
+                .replace(".", "p")
+            )
+            ferm_act_string += "_" + clover_coeff
 
         head, record = cf.ReadRecord(file_in)
 
@@ -325,6 +437,10 @@ def unpack_barspec(filelist_iter, loc=""):
 
 def rec_dd():
     return collections.defaultdict(rec_dd)
+
+
+def FormatKappa(κ):
+    return "k" + f"{κ:.6f}".lstrip("0").replace(".", "p")
 
 
 def SourceNames(name):

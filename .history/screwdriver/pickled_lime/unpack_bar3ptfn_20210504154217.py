@@ -10,8 +10,17 @@ import collections
 magic_bytes = b"Eg\x89\xab"
 Nd = 4
 
+# Unpack bar3ptfn lime files into pickled arrays.
+# transition_form: label masses by {kin}t{kout}_{ki}..., where kin and kout are
+# masses of propagators before and after current insertion.
+# if false and kin=kout, label as {kcur}_{ki}..., where kcur is the mass of the
+# propagator on which current is inserted.
+# simplify: if true, label masses by {ki}... for unique ki, i.e. only listing all
+# unique masses with no distinguishing current from forward props.
+# NOTE simplify overrides transition_form
 
-def unpack_barspec(filelist_iter, loc=""):
+
+def unpack_bar3ptfn(filelist_iter, loc="", transition_form=False, simplify=False):
     data = rec_dd()
     data_trev = rec_dd()
 
@@ -21,14 +30,15 @@ def unpack_barspec(filelist_iter, loc=""):
         if head[:4] != magic_bytes:
             raise IOError("Record header missing magic bytes.")
 
-        if not head[16:].startswith(b"qcdsfDir"):
-            raise IOError("Missing qcdsfDir record")
+        if not head[16:].startswith(b"meta-xml"):
+            raise IOError("Missing meta-xml record")
 
         tree = ET.ElementTree(ET.fromstring(record.decode("utf-8", "ignore")))
         root = tree.getroot()
         latt_size = [
             int(s)
-            for s in root.find("ProgramInfo")
+            for s in root.find("bar3ptfn")
+            .find("ProgramInfo")
             .find("Setgeom")
             .find("latt_size")
             .text.split(" ")
@@ -37,99 +47,124 @@ def unpack_barspec(filelist_iter, loc=""):
         latt_size_str = "x".join(
             str(x) for x in latt_size if not (x in seen or seen.add(x))
         )
-        time_rev = root.find("Input").find("Param").find("time_rev").text == "true"
+        deriv_max = int(
+            root.find("bar3ptfn").find("Input").find("Param").find("deriv").text
+        )
 
-        mom2_max = int(root.find("Input").find("Param").find("mom2_max").text)
+        mom2_max = int(
+            root.find("bar3ptfn").find("Input").find("Param").find("mom2_max").text
+        )
         num_mom, mom_list = cf.CountMom(mom2_max, Nd)
 
-        head, record = cf.ReadRecord(file_in)
+        seqsrc = (
+            root.find("bar3ptfn")
+            .find("Wilson_3Pt_fn_measurements")
+            .find("Sequential_source")
+            .findall("elem")
+        )
 
-        while head != b"":
-            if not head[16:].startswith(b"meta-xml"):
-                raise IOError("Expecting meta-xml record")
-            tree = ET.ElementTree(ET.fromstring(record.decode("utf-8", "ignore")))
-            root = tree.getroot()
+        seqsrc_type = [
+            x.find("SequentialProp_record_info")
+            .find("SequentialProp")
+            .find("SeqSource")
+            .find("SeqSource")
+            .find("SeqSourceType")
+            .text
+            for x in seqsrc
+        ]
 
-            has_third = not (
-                root.find("Forward_prop_headers").find("Third_forward_prop") == None
-            )
+        forward_props = (
+            root.find("bar3ptfn")
+            .find("Wilson_3Pt_fn_measurements")
+            .find("Sequential_source")
+            .find("elem")
+            .find("SequentialProp_record_info")
+            .find("SequentialProp")
+            .find("ForwardProps")
+            .findall("elem")
+        )
 
-            baryon_number = int(root.find("baryon-number").text)
+        forward_κ = [
+            float(x.find("ForwardProp").find("FermionAction").find("Kappa").text)
+            for x in forwar_props
+        ]
+        current_κ_in = float(
+            root.find("bar3ptfn")
+            .find("Propagator_record_info")
+            .find("Propagator")
+            .find("ForwardProp")
+            .find("FermionAction")
+            .find("Kappa")
+            .text
+        )
 
-            κ1 = float(
-                root.find("Forward_prop_headers")
-                .find("First_forward_prop")
-                .find("ForwardProp")
+        current_κ_out = [
+            float(
+                x.find("SequentialProp_record_info")
+                .find("SequentialProp")
+                .find("SeqProp")
                 .find("FermionAction")
                 .find("Kappa")
                 .text
             )
-            κ2 = float(
-                root.find("Forward_prop_headers")
-                .find("Second_forward_prop")
+            for x in seqsrc
+        ]
+
+        if simplify:
+            κ_simplified = [
+                set(forward_κ + [current_κ_in] + [x]) for x in current_κ_out
+            ]
+            κ_string = [sum([FormatKappa(k) for k in x]) for x in κ_simplified]
+
+        elif (transition_form) or (~all([x == current_κ_in for x in current_κ_out])):
+            κ_string = [
+                FormatKappa(current_κ_in)
+                + "t"
+                + FormatKappa(x)
+                + "_"
+                + sum([FormatKappa(y) for y in forward_κ])
+                for x in current_κ_out
+            ]
+
+        else:
+            κ_string = [
+                "c" + FormatKappa(x) + "_" + sum([FormatKappa(y) for y in forward_κ])
+                for x in current_κ_out
+            ]
+
+        ferm_act_string = (
+            root.find("bar3ptfn")
+            .find("Propagator_record_info")
+            .find("Propagator")
+            .find("ForwardProp")
+            .find("FermionAction")
+            .find("FermAct")
+            .text.lower()
+        )
+        if ferm_act_string == "clover":
+            clover_coeff = (
+                root.find("bar3ptfn")
+                .find("Propagator_record_info")
+                .find("Propagator")
                 .find("ForwardProp")
                 .find("FermionAction")
-                .find("Kappa")
-                .text
+                .find("clovCoeff")
+                .text.lstrip("0")
+                .replace(".", "p")
             )
+            ferm_act_string += "_" + clover_coeff
 
-            κ_str = (
-                "k"
-                + f"{κ1:.6f}".lstrip("0").replace(".", "p")
-                + "k"
-                + f"{κ2:.6f}".lstrip("0").replace(".", "p")
+
+        source_string = (
+                forward_props[0].find("PropSource").find("Source").find("SourceType").text.lower()
             )
-
-            if has_third:
-                κ3 = float(
-                    root.find("Forward_prop_headers")
-                    .find("Third_forward_prop")
-                    .find("ForwardProp")
-                    .find("FermionAction")
-                    .find("Kappa")
-                    .text
-                )
-                κ_str += "k" + f"{κ3:.6f}".lstrip("0").replace(".", "p")
-
-            ferm_act_string = (
-                root.find("Forward_prop_headers")
-                .find("First_forward_prop")
-                .find("ForwardProp")
-                .find("FermionAction")
-                .find("FermAct")
-                .text.lower()
+        sink_string = (
+                forward_props[0].find("PropSink").find("Sink").find("SinkType").text.lower()
             )
-            if ferm_act_string == "clover":
-                clover_coeff = (
-                    root.find("Forward_prop_headers")
-                    .find("First_forward_prop")
-                    .find("ForwardProp")
-                    .find("FermionAction")
-                    .find("clovCoeff")
-                    .text.lstrip("0")
-                    .replace(".", "p")
-                )
-                ferm_act_string += "_" + clover_coeff
-
-            if κ1 == κ2:
-                ferm_act_string += "_nf0"
-            elif has_third:
-                ferm_act_string += "_nf3"
-            else:
-                ferm_act_string += "_nf2"
-
-            # Chroma throws an error if both props have different smearing, need
-            # only check one each at source and sink
-
-            source_string = (
-                root.find("SourceSinkType").find("source_type_1").text.lower()
-            )
-            sink_string = root.find("SourceSinkType").find("sink_type_1").text.lower()
-
-            if source_string == "shell_source":
+        
+        if source_string == "shell_source":
                 source_kind = (
-                    root.find("Forward_prop_headers")
-                    .find("First_forward_prop")
+                    forward_props[0]
                     .find("PropSource")
                     .find("Source")
                     .find("SmearingParam")
@@ -162,6 +197,7 @@ def unpack_barspec(filelist_iter, loc=""):
                 )
             else:
                 source_string = SourceNames(source_string)
+            
             if sink_string == "shell_sink":
                 sink_kind = (
                     root.find("Forward_prop_headers")
@@ -199,6 +235,8 @@ def unpack_barspec(filelist_iter, loc=""):
             else:
                 sink_string = SinkNames(sink_string)
             source_sink_string = f"{source_string}-{sink_string}"
+
+
 
             head, record = cf.ReadRecord(file_in)
 
@@ -325,6 +363,10 @@ def unpack_barspec(filelist_iter, loc=""):
 
 def rec_dd():
     return collections.defaultdict(rec_dd)
+
+
+def FormatKappa(κ):
+    return "k" + f"{κ:.6f}".lstrip("0").replace(".", "p")
 
 
 def SourceNames(name):

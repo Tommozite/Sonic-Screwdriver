@@ -28,6 +28,6 @@ def bootstrap(array, nboot, cfg_axis=0, boot_axis=0):
 
     for iboot in range(1, nboot):
         rint = np.random.randint(0, length, size=length)
-        result[iboot] = array[rint].mean(axis=0)
+        result[iboot] = np.mean(array[rint],axis=0)
     result = np.moveaxis(result, 0, boot_axis)
     return result

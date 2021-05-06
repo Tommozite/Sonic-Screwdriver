@@ -85,22 +85,15 @@ def chiral_extrapolation_dict(mass_array, data, fit_func):
     try:
         for p in range(len(data[list(data.keys())[0]][0, :])):
             y_array = np.array([data[k][:, p] for k in data.keys()]).transpose()
-            x_linspace = np.linspace(
-                min(np.min(mass_array), 0), max(np.max(mass_array), 0)
-            )
+            x_linspace = np.linspace(min(np.min(mass_array), 0), 
+            max(np.max(mass_array), 0))
             χ_fit, χ_fit_params_temp, χ2ν_temp = ensemble_fit(
                 fit_func, mass_array, y_array, x_linspace
-            )
+        )
             result.append(χ_fit[:, 0])
             χ_fit_params.append(χ_fit_params_temp)
             χ2ν.append(χ2ν_temp)
         result = np.array(result).transpose()
-    except TypeError:
-        result = np.array(data[list(data.keys())[0]])
-        χ_fit_params = None
-        χ2ν = None
-    except e:
-        raise e
     return result, χ_fit_params, χ2ν
 
 
