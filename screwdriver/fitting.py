@@ -12,28 +12,50 @@ def χ2(func, params, xdata, ydata):
     return result
 
 
-def ensemble_fit_params(fit_func, xdata, ydata, bounds=None, guess=None, data_axis=0):
+def ensemble_fit_params(
+    fit_func, xdata, ydata, bounds=(-np.inf, np.inf), guess=None, data_axis=0
+):
     Ndata = ydata.shape[data_axis]
-    if bounds == None:
-        bounds = (-np.inf, np.inf)
-    fit_params = np.array(
-        [
-            curve_fit(
-                fit_func,
-                xdata,
-                ydata[data],
-                sigma=ydata.std(axis=data_axis),
-                bounds=bounds,
-                p0=guess,
-            )[0]
-            for data in range(Ndata)
-        ]
-    )
-    dof = len(xdata) - len(fit_params[0])
-    fit_xdata = np.array(
-        [fit_func(xdata, *fit_params[data]) for data in range(Ndata)]
-    ).mean(axis=0)
-
+    try:
+        fit_params = np.array(
+            [
+                curve_fit(
+                    fit_func,
+                    xdata,
+                    ydata[data],
+                    sigma=ydata.std(axis=data_axis),
+                    bounds=bounds,
+                    p0=guess,
+                )[0]
+                for data in range(Ndata)
+            ]
+        )
+        dof = len(xdata) - len(fit_params[0])
+        fit_xdata = np.array(
+            [fit_func(xdata, *fit_params[data]) for data in range(Ndata)]
+        ).mean(axis=0)
+    except TypeError:
+        # Support for array of functions for each data slice (i.e. input of other
+        # parameters obtained for each slice)
+        fit_params = np.array(
+            [
+                curve_fit(
+                    fit_func[data],
+                    xdata,
+                    ydata[data],
+                    sigma=ydata.std(axis=data_axis),
+                    bounds=bounds,
+                    p0=guess,
+                )[0]
+                for data in range(Ndata)
+            ]
+        )
+        dof = len(xdata) - len(fit_params[0])
+        fit_xdata = np.array(
+            [fit_func(xdata, *fit_params[data]) for data in range(Ndata)]
+        ).mean(axis=0)
+    except:
+        raise
     χ2 = sum(
         [
             ((ydata.mean(axis=data_axis)[i] - fit_xdata[i]) ** 2)
@@ -49,7 +71,14 @@ def ensemble_fit_params(fit_func, xdata, ydata, bounds=None, guess=None, data_ax
 
 def ensemble_fit_params_to_fit(fit_params, xlinspace, fit_func, data_axis=0):
     Ndata = fit_params.shape[data_axis]
-    fit = np.array([fit_func(xlinspace, *fit_params[data]) for data in range(Ndata)])
+    try:
+        fit = np.array(
+            [fit_func(xlinspace, *fit_params[data]) for data in range(Ndata)]
+        )
+    except TypeError:
+        fit = np.array(
+            [fit_func[data](xlinspace, *fit_params[data]) for data in range(Ndata)]
+        )
     return fit
 
 
@@ -99,8 +128,8 @@ def chiral_extrapolation_dict(mass_array, data, fit_func):
         result = np.array(data[list(data.keys())[0]])
         χ_fit_params = None
         χ2ν = None
-    except e:
-        raise e
+    except:
+        raise
     return result, χ_fit_params, χ2ν
 
 
