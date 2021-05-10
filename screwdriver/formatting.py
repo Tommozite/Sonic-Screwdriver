@@ -149,7 +149,10 @@ def FormatBeta(β):
 
 def FormatDelta(λ, β):
     δ = λ * β
-    return "d" + f"{δ:.1f}".lstrip("0").replace(".", "p")
+    if λ >= 0:
+        return "d" + f"{δ:.1f}".lstrip("0").replace(".", "p")
+    else:
+        return "dm" + f"{-δ:.1f}".lstrip("0").replace(".", "p")
 
 
 def FormatMom(mom):

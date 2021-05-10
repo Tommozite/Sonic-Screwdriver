@@ -20,7 +20,7 @@ Nd = 4
 # NOTE simplify overrides transition_form
 
 
-def unpack_bar3ptfn(filelist_iter, loc="", transition_form=False, simplify=False):
+def unpack_bar3ptfn(filelist_iter, loc=".", transition_form=False, simplify=False):
     data = rec_dd()
     data_trev = rec_dd()
 

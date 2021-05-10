@@ -11,7 +11,7 @@ magic_bytes = b"Eg\x89\xab"
 Nd = 4
 
 
-def unpack_barspec(filelist_iter, loc=""):
+def unpack_barspec(filelist_iter, loc="."):
     data = rec_dd()
     data_trev = rec_dd()
 
@@ -110,13 +110,6 @@ def unpack_barspec(filelist_iter, loc=""):
                     .replace(".", "p")
                 )
                 ferm_act_string += "_" + clover_coeff
-
-            if κ1 == κ2:
-                ferm_act_string += "_nf0"
-            elif has_third:
-                ferm_act_string += "_nf3"
-            else:
-                ferm_act_string += "_nf2"
 
             # Chroma throws an error if both props have different smearing, need
             # only check one each at source and sink

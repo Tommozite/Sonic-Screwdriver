@@ -14,7 +14,7 @@ magic_bytes = b"Eg\x89\xab"
 Nd = 4
 
 
-def unpack_messpec(filelist_iter, loc=""):
+def unpack_messpec(filelist_iter, loc="."):
     data = rec_dd()
     file_count = 0
 
@@ -127,10 +127,6 @@ def unpack_messpec(filelist_iter, loc=""):
                 )
                 ferm_act_string += "_" + clover_coeff
 
-            if κ1 == κ2:
-                ferm_act_string += "_nf0"
-            else:
-                ferm_act_string += "_nf2"
 
             # Chroma throws an error if both props have different smearing, need
             # only check one each at source and sink
