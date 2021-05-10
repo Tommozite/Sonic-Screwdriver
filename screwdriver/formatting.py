@@ -137,3 +137,11 @@ def frexp10(float_in):
     significand = float_in / (10 ** exponent)
 
     return tuple([significand, exponent])
+
+
+def FormatKappa(κ):
+    return "k" + f"{κ:.6f}".lstrip("0").replace(".", "p")
+
+
+def FormatMom(mom):
+    return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])
