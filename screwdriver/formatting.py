@@ -142,8 +142,15 @@ def frexp10(float_in):
 def FormatKappa(κ):
     return "k" + f"{κ:.6f}".lstrip("0").replace(".", "p")
 
+
 def FormatBeta(β):
-    return "b" + f"{κ:.2f}".lstrip("0").replace(".", "p")
+    return "b" + f"{β:.2f}".lstrip("0").replace(".", "p")
+
+
+def FormatDelta(λ, β):
+    δ = λ * β
+    return "d" + f"{δ:.1f}".lstrip("0").replace(".", "p")
+
 
 def FormatMom(mom):
     return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])
