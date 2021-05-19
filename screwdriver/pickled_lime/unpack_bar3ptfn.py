@@ -46,9 +46,6 @@ def unpack_bar3ptfn(filelist_iter, loc=".", transition_form=False, simplify=Fals
         latt_size_str = "x".join(
             str(x) for x in latt_size if not (x in seen or seen.add(x))
         )
-        deriv_max = int(
-            root.find("bar3ptfn").find("Input").find("Param").find("deriv").text
-        )
 
         mom2_max = int(
             root.find("bar3ptfn").find("Input").find("Param").find("mom2_max").text
