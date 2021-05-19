@@ -35,27 +35,28 @@ def ensemble_fit_params(
             [fit_func(xdata, *fit_params[data]) for data in range(Ndata)]
         ).mean(axis=0)
     except TypeError:
-        # Support for array of functions for each data slice (i.e. input of other
-        # parameters obtained for each slice)
-        fit_params = np.array(
-            [
-                curve_fit(
-                    fit_func[data],
-                    xdata,
-                    ydata[data],
-                    sigma=ydata.std(axis=data_axis),
-                    bounds=bounds,
-                    p0=guess,
-                )[0]
-                for data in range(Ndata)
-            ]
-        )
-        dof = len(xdata) - len(fit_params[0])
-        fit_xdata = np.array(
-            [fit_func(xdata, *fit_params[data]) for data in range(Ndata)]
-        ).mean(axis=0)
-    except:
-        raise
+        if not hasattr(fit_func, "__getitem__"):
+            raise
+        else:
+            # Support for array of functions for each data slice (i.e. input of other
+            # parameters obtained for each slice)
+            fit_params = np.array(
+                [
+                    curve_fit(
+                        fit_func[data],
+                        xdata,
+                        ydata[data],
+                        sigma=ydata.std(axis=data_axis),
+                        bounds=bounds,
+                        p0=guess,
+                    )[0]
+                    for data in range(Ndata)
+                ]
+            )
+    dof = len(xdata) - len(fit_params[0])
+    fit_xdata = np.array(
+        [fit_func(xdata, *fit_params[data]) for data in range(Ndata)]
+    ).mean(axis=0)
     χ2 = sum(
         [
             ((ydata.mean(axis=data_axis)[i] - fit_xdata[i]) ** 2)
@@ -76,14 +77,17 @@ def ensemble_fit_params_to_fit(fit_params, xlinspace, fit_func, data_axis=0):
             [fit_func(xlinspace, *fit_params[data]) for data in range(Ndata)]
         )
     except TypeError:
-        fit = np.array(
-            [fit_func[data](xlinspace, *fit_params[data]) for data in range(Ndata)]
-        )
+        if not hasattr(fit_func, "__getitem__"):
+            raise
+        else:
+            fit = np.array(
+                [fit_func[data](xlinspace, *fit_params[data]) for data in range(Ndata)]
+            )
     return fit
 
 
 def ensemble_fit(
-    fit_func, xdata, ydata, xlinspace, bounds=None, guess=None, data_axis=0
+    fit_func, xdata, ydata, xlinspace, bounds=(-np.inf, np.inf), guess=None, data_axis=0
 ):
     fit_params, χ2ν = ensemble_fit_params(
         fit_func, xdata, ydata, bounds, guess, data_axis=data_axis
