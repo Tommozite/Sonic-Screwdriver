@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import collections
 
 
 def frexp10(float_in):
@@ -98,3 +99,24 @@ def determine_epsilon(array_in):
     # Looking for a small non-zero number
     epsilon = np.min(difference[difference != 0]) / 100
     return epsilon
+
+
+def rec_dd():
+    return collections.defaultdict(rec_dd)
+
+
+def wherein(y, x):
+    """ For every element in y, find the index of where it first appears in x. Returns
+    a numpy mask array (np.ma) with the corresponding indices. 
+    Code from https://stackoverflow.com/questions/8251541/numpy-for-every-element-in-one-array-find-the-index-in-another-array"""
+    y = np.array(y)
+    x = np.array(x)
+    index = np.argsort(x)
+    sorted_x = x[index]
+    sorted_index = np.searchsorted(sorted_x, y)
+
+    yindex = np.take(index, sorted_index, mode="clip")
+    mask = x[yindex] != y
+
+    result = np.ma.array(yindex, mask=mask)
+    return result
