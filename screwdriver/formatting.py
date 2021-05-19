@@ -136,7 +136,7 @@ def frexp10(float_in):
     exponent = math.floor(math.log10(abs(float_in)))
     significand = float_in / (10 ** exponent)
 
-    return tuple([significand, exponent])
+    return significand, exponent
 
 
 def FormatKappa(κ):
