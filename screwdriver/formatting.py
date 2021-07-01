@@ -24,9 +24,11 @@ def err_brackets(
 
     quantity = float(quantity)
     error = float(error)
+
     if not math.isfinite(quantity) or not math.isfinite(error):
         warnings.warn("Non finite value was input")
         return "NaN"
+
     if error_prec < 1 or (not isinstance(error_prec, int)):
         raise ValueError("error_prec must be an integer larger than 1")
 
