@@ -1,5 +1,6 @@
-import numpy
+import numpy as np
 import math
+import warnings
 
 
 def err_brackets(
@@ -23,6 +24,9 @@ def err_brackets(
 
     quantity = float(quantity)
     error = float(error)
+    if not math.isfinite(quantity) or not math.isfinite(error):
+        warnings.warn("Non finite value was input")
+        return "NaN"
     if error_prec < 1 or (not isinstance(error_prec, int)):
         raise ValueError("error_prec must be an integer larger than 1")
 
@@ -139,15 +143,15 @@ def frexp10(float_in):
     return significand, exponent
 
 
-def FormatKappa(κ):
+def format_kappa(κ):
     return "k" + f"{κ:.6f}".lstrip("0").replace(".", "p")
 
 
-def FormatBeta(β):
+def format_beta(β):
     return "b" + f"{β:.2f}".lstrip("0").replace(".", "p")
 
 
-def FormatDelta(λ, β):
+def format_delta(λ, β):
     δ = λ * β
     if λ >= 0:
         return "d" + f"{δ:.1f}".lstrip("0").replace(".", "p")
@@ -155,5 +159,19 @@ def FormatDelta(λ, β):
         return "dm" + f"{-δ:.1f}".lstrip("0").replace(".", "p")
 
 
-def FormatMom(mom):
+def format_mom(mom):
     return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])
+
+
+def format_lat_size(*args, **kwargs):
+    if args == ():
+        return f"{kwargs['Ns']}x{kwargs['Nt']}"
+    elif len(args) == 1 and type(args[0]) == list:
+        temp = sorted(set(args[0]))
+        return "x".join(str(x) for x in temp)
+    elif np.logical_and([type(x) == int for x in args]):
+        return "x".join(str(x) for x in args)
+    else:
+        raise ValueError(
+            "input must be a dict with Ns and Nt keys, a single list of dimensions, or 1 int input per distinct dimension"
+        )
