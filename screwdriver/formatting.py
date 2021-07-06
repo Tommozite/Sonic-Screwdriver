@@ -139,7 +139,7 @@ def err_brackets(
 def frexp10(float_in):
     """Returns the mantissa and exponent in base 10 of input float."""
     if float_in == 0:
-        return 0.0, 0
+        return 0.0, 1
     exponent = math.floor(math.log10(abs(float_in)))
     significand = float_in / (10 ** exponent)
 
