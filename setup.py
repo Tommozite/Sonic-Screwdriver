@@ -9,9 +9,6 @@ setuptools.setup(
     author="Tomas Howson",
     author_email="tomas.howson@adelaide.edu.au",
     description="Toolbox of useful functions.",
-    # long_description=long_description,
-    # long_description_content_type="text/markdown",
-    # url="https://github.com/AndreScaffidi/NatPy",
     packages=setuptools.find_packages(),
     install_requires=["numpy"],
     classifiers=[

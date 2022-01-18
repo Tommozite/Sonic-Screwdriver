@@ -7,7 +7,7 @@ import sys
 def read_record(file):
     head = file.read(32)
     if head == b"":
-        return b"",b""
+        return b"", b""
     file.read(14 * 8)
     record_size = np.frombuffer(head[8:16], dtype=">i8")[0]
     record = file.read(record_size)
