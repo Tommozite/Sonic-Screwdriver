@@ -45,6 +45,7 @@ def unpack_messpec(filelist_iter, filter_dict=None, loc="."):
 
         file_in = open(filename.strip(), "rb")
         head, record = cf.read_record(file_in)
+
         if head[:4] != magic_bytes:
             raise IOError("Record header missing magic bytes.")
 
@@ -114,15 +115,17 @@ def unpack_messpec(filelist_iter, filter_dict=None, loc="."):
     for attr, output in data.items():
         out_dir = loc + f"/messpec/{attr[0]}/{attr[1]}/{attr[2]}/{attr[3]}/{attr[4]}/"
         os.makedirs(out_dir, exist_ok=True)
-        out_data = []
         if emergency_dumps > 0:
+            out_data = []
             temp_name = f"messpec_{attr[5]}.pickle"
             for ed in range(emergency_dumps):
                 with open(out_dir + temp_name + f".temp{ed+1}", "rb") as file_in:
                     out_data.append(pickle.load(file_in))
                 os.remove(out_dir + temp_name + f".temp{ed+1}")
-
-        out_data.append(output)
+            out_data.append(output)
+            out_data = np.concatenate(out_data, axis=0)
+        else:
+            out_data = output
         out_data = np.array(out_data)
         ncfg = len(out_data)
         out_name = f"messpec_{attr[5]}_{ncfg}cfgs.pickle"
