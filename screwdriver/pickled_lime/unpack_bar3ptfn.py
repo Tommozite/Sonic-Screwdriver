@@ -31,7 +31,7 @@ def unpack_bar3ptfn(
     max_memory = 1000000000  # 10MB hardcoded for now #virtual_memory().total / 200
     file_size = os.path.getsize(filelist_iter[0])
     # check_interval = max_memory // file_size
-    check_interval = len(filelist_iter) // 100
+    check_interval = len(filelist_iter) // 1
     print("reading limes")
     for file_count, filename in enumerate(filelist_iter):
         if (file_count + 1) % check_interval == 0:
@@ -330,7 +330,7 @@ def read_ferm_act_bar3ptfn(root):
         .find("FermAct")
         .text.lower()
     )
-    if ferm_act_string == "clover":
+    if ferm_act_string == "clover" or ferm_act_string == "clover_fh":
         clover_coeff = (
             root.find("bar3ptfn")
             .find("Propagator_record_info")
@@ -341,7 +341,7 @@ def read_ferm_act_bar3ptfn(root):
             .text.lstrip("0")
             .replace(".", "p")
         )
-        ferm_act_string += "_" + clover_coeff
+        ferm_act_string = "clover_" + clover_coeff
     return ferm_act_string
 
 
