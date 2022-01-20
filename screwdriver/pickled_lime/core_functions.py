@@ -2,17 +2,24 @@
 import numpy as np
 import gc
 import sys
+import xml.etree.ElementTree as ET
+from . import readers
+from . import names
+
+magic_bytes = b"Eg\x89\xab"
 
 
 def read_record(file):
     head = file.read(32)
     if head == b"":
-        return b"",b""
+        return b"", b""
     file.read(14 * 8)
     record_size = np.frombuffer(head[8:16], dtype=">i8")[0]
     record = file.read(record_size)
     padding_size = (8 - record_size % 8) % 8
     file.read(padding_size)
+    if head[:4] != magic_bytes:
+        raise IOError("Record header missing magic bytes.")
     return head, record
 
 
@@ -107,17 +114,3 @@ def dict_generator(indict, pre=None):
     else:
         yield pre + [indict]
 
-
-def read_filter_dict(filter_dict, attribute_names, attribute_list, **kwargs):
-    if filter_dict == None:
-        return True
-    for name, val in zip(attribute_names, attribute_list):
-        if name in filter_dict:
-            read_bool = (
-                hasattr(filter_dict[name], "__getitem__") and val in filter_dict[name]
-            ) or (filter_dict[name] == val)
-            if not read_bool:
-                return False
-        else:
-            pass
-    return True

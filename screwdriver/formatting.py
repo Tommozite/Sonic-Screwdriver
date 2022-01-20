@@ -178,3 +178,22 @@ def format_lat_size(*args, **kwargs):
         raise ValueError(
             "input must be a dict with Ns and Nt keys, a single list of dimensions, or 1 int input per distinct dimension"
         )
+
+
+from .pickled_lime import names
+
+
+def format_form_fac(form_fac_number, deriv):
+    gamma_num = form_fac_number % 16
+    gamma_string = names.γ_names[gamma_num]
+    mu = (form_fac_number // 16) % 4
+    nu = form_fac_number // 64
+    if deriv == 0:
+        result = gamma_string
+    elif deriv == 1:
+        result = f"mu{mu}_" + gamma_string
+    elif deriv == 2:
+        result = f"mu{mu}_nu{nu}_" + gamma_string
+    else:
+        raise ValueError(f"deriv = {deriv} not supported.")
+    return result
