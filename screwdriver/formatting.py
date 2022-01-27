@@ -162,6 +162,13 @@ def format_delta(λ, β):
         return "dm" + f"{-δ:.1f}".lstrip("0").replace(".", "p")
 
 
+def format_lambda(λ):
+    if λ >= 0:
+        return "l" + f"{λ:.4f}".lstrip("0").replace(".", "p")
+    else:
+        return "lm" + f"{-λ:.4f}".lstrip("0").replace(".", "p")
+
+
 def format_mom(mom):
     return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])
 

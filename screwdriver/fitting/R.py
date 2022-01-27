@@ -65,9 +65,7 @@ def fit_R(
     )
 
 
-def fit_R_plateau(
-    G3_time, G3_data, G2_data, G2_fit_mean, G2_fit_params, guess, G3_tlim, **kwargs
-):
+def fit_R_plateau(G3_time, G3_data, G2_data, guess, G3_tlim, **kwargs):
     # Get fitting functions
     R_fit_func = lambda x, c: sa.constant(x[:, 0], c)
 

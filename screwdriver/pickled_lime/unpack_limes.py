@@ -63,5 +63,5 @@ def unpack_limes(
             else:
                 data_out[key] = [value]
 
-    measure.writer(data, loc, emergency_dump_count)
+    measure.writer(data_out, loc, emergency_dump_count)
 
