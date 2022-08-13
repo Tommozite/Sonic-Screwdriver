@@ -1,6 +1,5 @@
-from .. import formatting
 from . import core_functions as cf
-
+import numpy as np
 
 γ_names = [
     "gI",
@@ -31,7 +30,7 @@ def read_lat_size(root):
         .text.split(" ")
     ]
 
-    latt_size_str = formatting.format_lat_size(latt_size)
+    latt_size_str = format_lat_size(latt_size)
     return latt_size, latt_size_str
 
 
@@ -196,7 +195,7 @@ def read_latt_size_bar3ptfn(root):
         .find("latt_size")
         .text.split(" ")
     ]
-    latt_size_str = formatting.format_lat_size(latt_size)
+    latt_size_str = format_lat_size(latt_size)
     return latt_size, latt_size_str
 
 
@@ -273,26 +272,21 @@ def read_kappa_bar3ptfn(root, seqsrc, forward_props, simplify, transition_form):
     ]
     if simplify:
         κ_simplified = [set(forward_κ + [current_κ_in] + [x]) for x in current_κ_out]
-        κ_string = [
-            "".join([formatting.format_kappa(k) for k in x]) for x in κ_simplified
-        ]
+        κ_string = ["".join([format_kappa(k) for k in x]) for x in κ_simplified]
 
     elif (transition_form) or (~all([x == current_κ_in for x in current_κ_out])):
         κ_string = [
-            formatting.format_kappa(current_κ_in)
+            format_kappa(current_κ_in)
             + "t"
-            + formatting.format_kappa(x)
+            + format_kappa(x)
             + "_"
-            + "".join([formatting.format_kappa(y) for y in forward_κ])
+            + "".join([format_kappa(y) for y in forward_κ])
             for x in current_κ_out
         ]
 
     else:
         κ_string = [
-            "c"
-            + formatting.format_kappa(x)
-            + "_"
-            + "".join([formatting.format_kappa(y) for y in forward_κ])
+            "c" + format_kappa(x) + "_" + "".join([format_kappa(y) for y in forward_κ])
             for x in current_κ_out
         ]
     return κ_string
@@ -428,7 +422,7 @@ def read_lat_size_bar3ptfn(root):
         .find("latt_size")
         .text.split(" ")
     ]
-    lat_size_str = formatting.format_lat_size(lat_size)
+    lat_size_str = format_lat_size(lat_size)
     return lat_size, lat_size_str
 
 
@@ -505,26 +499,21 @@ def read_kappa_bar3ptfn(root, seqsrc, forward_props, simplify, transition_form):
     ]
     if simplify:
         κ_simplified = [set(forward_κ + [current_κ_in] + [x]) for x in current_κ_out]
-        κ_string = [
-            "".join([formatting.format_kappa(k) for k in x]) for x in κ_simplified
-        ]
+        κ_string = ["".join([format_kappa(k) for k in x]) for x in κ_simplified]
 
     elif (transition_form) or (~all([x == current_κ_in for x in current_κ_out])):
         κ_string = [
-            formatting.format_kappa(current_κ_in)
+            format_kappa(current_κ_in)
             + "t"
-            + formatting.format_kappa(x)
+            + format_kappa(x)
             + "_"
-            + "".join([formatting.format_kappa(y) for y in forward_κ])
+            + "".join([format_kappa(y) for y in forward_κ])
             for x in current_κ_out
         ]
 
     else:
         κ_string = [
-            "c"
-            + formatting.format_kappa(x)
-            + "_"
-            + "".join([formatting.format_kappa(y) for y in forward_κ])
+            "c" + format_kappa(x) + "_" + "".join([format_kappa(y) for y in forward_κ])
             for x in current_κ_out
         ]
     return κ_string
@@ -653,3 +642,20 @@ def read_filter_dict(filter_dict, attribute_names, attribute_list, **kwargs):
             pass
     return True
 
+
+def format_kappa(κ):
+    return "k" + f"{κ:.6f}".lstrip("0").replace(".", "p")
+
+
+def format_lat_size(*args, **kwargs):
+    if args == ():
+        return f"{kwargs['Ns']}x{kwargs['Nt']}"
+    elif len(args) == 1 and type(args[0]) == list:
+        temp = sorted(set(args[0]))
+        return "x".join(str(x) for x in temp)
+    elif np.logical_and([type(x) == int for x in args]):
+        return "x".join(str(x) for x in args)
+    else:
+        raise ValueError(
+            "input must be a dict with Ns and Nt keys, a single list of dimensions, or 1 int input per distinct dimension"
+        )

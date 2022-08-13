@@ -141,7 +141,7 @@ def frexp10(float_in):
     if float_in == 0:
         return 0.0, 0
     exponent = math.floor(math.log10(abs(float_in)))
-    significand = float_in / (10 ** exponent)
+    significand = float_in / (10**exponent)
 
     return significand, exponent
 
@@ -162,11 +162,15 @@ def format_delta(λ, β):
         return "dm" + f"{-δ:.1f}".lstrip("0").replace(".", "p")
 
 
-def format_lambda(λ):
-    if λ >= 0:
-        return "l" + f"{λ:.4f}".lstrip("0").replace(".", "p")
+def format_lambda(λ, id=None):
+    if id != None:
+        pre = id + "_"
     else:
-        return "lm" + f"{-λ:.4f}".lstrip("0").replace(".", "p")
+        pre = ""
+    if λ >= 0:
+        return pre + "l" + f"{λ:.4f}".lstrip("0").replace(".", "p")
+    else:
+        return pre + "lm" + f"{-λ:.4f}".lstrip("0").replace(".", "p")
 
 
 def format_mom(mom):
@@ -185,22 +189,3 @@ def format_lat_size(*args, **kwargs):
         raise ValueError(
             "input must be a dict with Ns and Nt keys, a single list of dimensions, or 1 int input per distinct dimension"
         )
-
-
-from .pickled_lime import names
-
-
-def format_form_fac(form_fac_number, deriv):
-    gamma_num = form_fac_number % 16
-    gamma_string = names.γ_names[gamma_num]
-    mu = (form_fac_number // 16) % 4
-    nu = form_fac_number // 64
-    if deriv == 0:
-        result = gamma_string
-    elif deriv == 1:
-        result = f"mu{mu}_" + gamma_string
-    elif deriv == 2:
-        result = f"mu{mu}_nu{nu}_" + gamma_string
-    else:
-        raise ValueError(f"deriv = {deriv} not supported.")
-    return result

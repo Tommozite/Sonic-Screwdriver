@@ -12,15 +12,11 @@ def fit_G2_effective_mass(
     tlin = np.linspace(min(t), max(t) + 1, 4 * (len(t)), endpoint=False)
     tfit, datafit, _, _ = filter_main(t, G2, G2_tlim)
 
-    fit_mean_params, fit_params, fit_χ2ν, dof = ensemble_fit(
-        fitfunc, tfit, datafit, guess
-    )
+    fit_params, fit_χ2ν, dof = ensemble_fit(fitfunc, tfit, datafit, guess)
 
-    fit_mean = fitfunc(tlin, *fit_mean_params)
     fit = np.array([fitfunc(tlin, *fit_params[n]) for n in range(num_data)])
 
     effmass_data = effective_mass(t, G2, eff_mass_a, Nt)
-    effmass_mean = effective_mass(tlin, fit_mean, eff_mass_a, Nt, time_axis=0)
     effmass_fit = effective_mass(tlin, fit, eff_mass_a, Nt)
 
     tfit, _, trej, _ = filter_main(t, effmass_data, G2_tlim)
@@ -28,7 +24,7 @@ def fit_G2_effective_mass(
         tlin, effmass_fit, G2_tlim, return_mask=True
     )
 
-    effmass_mean_filtered = effmass_mean[mask]
+    effmass_mean_filtered = effmass_fit_filtered.mean(axis=data_axis)
     effmass_std_filtered = effmass_fit_filtered.std(axis=data_axis)
 
     return (
@@ -39,7 +35,6 @@ def fit_G2_effective_mass(
         effmass_mean_filtered,
         effmass_std_filtered,
         effmass_fit_filtered,
-        fit_mean_params,
         fit_params,
         fit_χ2ν,
     )

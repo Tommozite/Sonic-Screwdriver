@@ -3,7 +3,7 @@ from ..ansatz import G2, G3, R
 from ..ansatz import simple as sa
 from functools import partial
 from .G3 import filter_G3
-from .main import ensemble_fit, ensemble_fit_funcarray, ensemble_fit_params_to_func
+from .main import ensemble_fit, ensemble_fit_params_to_func
 
 
 def fit_R(
@@ -40,7 +40,7 @@ def fit_R(
         G3_time, R_data, G3_tlim
     )
 
-    R_fit_mean, R_fit_params, R_fit_χ2ν, dof = ensemble_fit_funcarray(
+    R_fit_mean, R_fit_params, R_fit_χ2ν, dof = ensemble_fit(
         R_func_mean, R_func_array, G3_time_fit, R_data_fit, guess
     )
 

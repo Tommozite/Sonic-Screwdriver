@@ -3,6 +3,7 @@ import dill as pickle
 from scipy.optimize import curve_fit
 from scipy.optimize import minimize
 from .chi2 import χ2_weighted
+from functools import partial
 
 
 def save_fit(
@@ -12,11 +13,9 @@ def save_fit(
     xfiltered,
     xrej,
     xfit,
-    datafit_mean,
-    datafit_ens,
+    datafit,
     fitfunc,
-    paramsfit_mean,
-    paramsfit_ens,
+    paramsfit,
     χ2ν,
 ):
     out_dict = {
@@ -30,13 +29,12 @@ def save_fit(
         },
         "fit": {
             "x": xfit,
-            "values": datafit_ens,
-            "avg": datafit_mean,
+            "values": datafit,
+            "avg": datafit.mean(axis=0),
             # "avg": fitfunc(xfit, *paramsfit.mean(axis=0)),
-            "std": np.std(datafit_ens, axis=0),
+            "std": np.std(datafit, axis=0),
             "fit_func": fitfunc,
-            "params": paramsfit_ens,
-            "params_mean": paramsfit_mean,
+            "params": paramsfit,
             "χ2ν": χ2ν,
         },
     }
@@ -52,83 +50,37 @@ def ensemble_curve_fit(
     Ndata = ydata.shape[data_axis]
     fit_params = np.array(
         [
-            curve_fit(fit_func, xdata, ydata[data], sigma=ydata.std(axis=data_axis),)[0]
+            curve_fit(
+                fit_func,
+                xdata,
+                ydata[data],
+                sigma=ydata.std(axis=data_axis),
+            )[0]
             for data in range(Ndata)
         ]
     )
-    fit_mean = np.array(
-        curve_fit(
-            fit_func,
-            xdata,
-            ydata.take(indices=0, axis=data_axis),
-            sigma=ydata.std(axis=data_axis),
-        )[0]
-    )
 
     cov_matrix = np.cov(ydata.T)
     cov_matrix_inv = np.linalg.pinv(cov_matrix)
-
+    fit_params_mean = fit_params.mean(axis=data_axis)
     χ2 = χ2_weighted(
-        fit_mean, fit_func, xdata, ydata.take(indices=0, axis=data_axis), cov_matrix_inv
-    )
-    dof = len(xdata) - len(guess)
-
-    return fit_mean, fit_params, χ2 / dof, dof
-
-
-def ensemble_fit(fit_func, xdata, ydata, guess, bounds=None, data_axis=0, **kwargs):
-    xdata = np.array(xdata)
-    ydata = np.array(ydata)
-    Ndata = ydata.shape[data_axis]
-
-    weight_matrix = np.diag(np.var(ydata, axis=data_axis) ** (-1))
-
-    cov_matrix = np.cov(ydata.T)
-    cov_matrix_inv = np.linalg.pinv(cov_matrix)
-
-    proper_guess = minimize(
-        χ2_weighted,
-        guess,
-        args=(fit_func, xdata, ydata.mean(axis=data_axis), weight_matrix),
-        method="Nelder-Mead",
-        bounds=bounds,
-    ).x
-    fit_data = [
-        minimize(
-            χ2_weighted,
-            proper_guess,
-            args=(fit_func, xdata, ydata[data], weight_matrix),
-            method="Nelder-Mead",
-            bounds=bounds,
-        )
-        for data in range(Ndata)
-    ]
-    fit_params = np.array([fit.x for fit in fit_data], dtype=fit_data[0].x.dtype)
-    fit_mean = minimize(
-        χ2_weighted,
-        proper_guess,
-        args=(fit_func, xdata, ydata.take(indices=0, axis=data_axis), weight_matrix),
-        method="Nelder-Mead",
-        bounds=bounds,
-    )
-    χ2 = χ2_weighted(
-        fit_mean.x,
+        fit_params_mean,
         fit_func,
         xdata,
         ydata.take(indices=0, axis=data_axis),
         cov_matrix_inv,
     )
     dof = len(xdata) - len(guess)
-    χ2ν = χ2 / dof if dof > 0 else None
-    return fit_mean.x, fit_params, χ2ν, dof
+
+    return fit_params, χ2 / dof, dof
 
 
-def ensemble_fit_funcarray(
-    fit_func_mean,
-    fit_func_array,
+def ensemble_fit(
+    fit_func,
     xdata,
     ydata,
     guess,
+    fixed_params=None,
     bounds=None,
     data_axis=0,
     **kwargs,
@@ -136,7 +88,27 @@ def ensemble_fit_funcarray(
     xdata = np.array(xdata)
     ydata = np.array(ydata)
     Ndata = ydata.shape[data_axis]
-    weight_matrix = np.linalg.inv(np.cov(ydata.T))
+
+    if fixed_params != None:
+        fixed_params_names, fixed_params_values = fixed_params
+
+    weight_matrix = np.diag(np.var(ydata, axis=data_axis) ** (-1))
+
+    cov_matrix = np.cov(ydata.T)
+    try:
+        cov_matrix_inv = np.linalg.pinv(cov_matrix)
+    except:
+        cov_matrix_inv = weight_matrix
+
+    if fixed_params != None:
+        fixed_params_mean = {
+            fixed_params_names[iarg]: (fixed_params_values[:, iarg]).mean(axis=0)
+            for iarg in range(len(fixed_params_names))
+        }
+        fit_func_mean = partial(fit_func, **fixed_params_mean)
+    else:
+        fit_func_mean = fit_func
+
     proper_guess = minimize(
         χ2_weighted,
         guess,
@@ -144,35 +116,48 @@ def ensemble_fit_funcarray(
         method="Nelder-Mead",
         bounds=bounds,
     ).x
-    fit_data = [
-        minimize(
-            χ2_weighted,
-            proper_guess,
-            args=(fit_func_array[data], xdata, ydata[data], weight_matrix),
-            method="Nelder-Mead",
-            bounds=bounds,
+    fit_data = []
+    for n in range(Ndata):
+        if fixed_params != None:
+            fixed_params_dict = {
+                fixed_params_names[i]: fixed_params_values[n, i]
+                for i in range(len(fixed_params_names))
+            }
+            fit_func_n = partial(fit_func, **fixed_params_dict)
+        else:
+            fit_func_n = fit_func
+        fit_data.append(
+            minimize(
+                χ2_weighted,
+                proper_guess,
+                args=(fit_func_n, xdata, ydata[n], weight_matrix),
+                method="Nelder-Mead",
+                bounds=bounds,
+            )
         )
-        for data in range(Ndata)
-    ]
+
     fit_params = np.array([fit.x for fit in fit_data], dtype=fit_data[0].x.dtype)
-    # print([fit.x for fit in fit_data])
-    fit_mean = minimize(
-        χ2_weighted,
-        proper_guess,
-        args=(fit_func_mean, xdata, ydata.mean(axis=data_axis), weight_matrix),
-        method="Nelder-Mead",
-        bounds=bounds,
+    χ2 = χ2_weighted(
+        fit_params.mean(axis=data_axis),
+        fit_func_mean,
+        xdata,
+        ydata.take(indices=0, axis=data_axis),
+        cov_matrix_inv,
     )
     dof = len(xdata) - len(guess)
-    χ2ν = fit_mean.fun / dof if dof > 0 else None
-    return fit_mean.x, fit_params, χ2ν, dof
+    χ2ν = χ2 / dof if dof > 0 else None
+    return fit_params, χ2ν, dof
 
 
-def ensemble_fit_params_to_func(fit_func, x, params_mean, params, data_axis=0):
+def ensemble_fit_params_to_func(fit_func, x, params, data_axis=0):
     length = params.shape[data_axis]
-    result_mean = np.array(fit_func(x, *params_mean))
-    result = np.array([fit_func(x, *params[n]) for n in range(length)])
-    return result_mean, result
+    result = np.empty((length, len(x)))
+    try:
+        for n, func in enumerate(fit_func):
+            result[n] = func(x, *params[n])
+    except TypeError:
+        result = np.array([fit_func(x, *params[n]) for n in range(length)])
+    return result
 
 
 def filter_main(xdata, ydata, xlims, stdmax=np.inf, data_axis=0, return_mask=False):

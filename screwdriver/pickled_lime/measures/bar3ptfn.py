@@ -3,10 +3,9 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from .. import core_functions as cf
 import os
-import dill as pickle
+import pickle
 
-from ... import formatting
-from .. import readers
+from .. import readers, names
 
 # Unpack bar3ptfn lime files into pickled arrays.
 # transition_form: label masses by {kin}t{kout}_{ki}..., where kin and kout are
@@ -68,7 +67,7 @@ def read_bar3ptfn_xml(file):
     root = tree.getroot()
 
     deriv = int(root.find("deriv").text)
-    num_form_fac = 16 * (4 ** deriv)
+    num_form_fac = 16 * (4**deriv)
     return deriv, num_form_fac
 
 
@@ -100,10 +99,10 @@ def read_bar3ptfn_bin(
         κ_str = κ_string[n_seq]
 
         for n_form_fac in range(num_form_fac):
-            form_fac_str = formatting.format_form_fac(n_form_fac, deriv)
+            form_fac_str = format_form_fac(n_form_fac, deriv)
 
             for n_mom, mom in enumerate(mom_list):
-                mom_str = formatting.format_mom(mom)
+                mom_str = format_mom(mom)
 
                 record_sliced = record[n_seq, n_form_fac, n_mom]
 
@@ -191,7 +190,26 @@ def write_bar3ptfn(data, loc, emergency_dumps):
             out_data = output
         out_data = np.array(out_data)
         ncfg = len(out_data)
-        out_name = f"bar3ptfn_{attr[6]}_{ncfg}cfgs.pickle"
+        out_name = f"bar3ptfn_{attr[6]}.pickle"
         with open(out_dir + out_name, "wb") as file_out:
             pickle.dump(out_data, file_out)
 
+
+def format_form_fac(form_fac_number, deriv):
+    gamma_num = form_fac_number % 16
+    gamma_string = names.γ_names[gamma_num]
+    mu = (form_fac_number // 16) % 4
+    nu = form_fac_number // 64
+    if deriv == 0:
+        result = gamma_string
+    elif deriv == 1:
+        result = f"mu{mu}_" + gamma_string
+    elif deriv == 2:
+        result = f"mu{mu}_nu{nu}_" + gamma_string
+    else:
+        raise ValueError(f"deriv = {deriv} not supported.")
+    return result
+
+
+def format_mom(mom):
+    return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])

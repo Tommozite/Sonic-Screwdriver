@@ -1,7 +1,7 @@
 import numpy as np
 from ..ansatz import G2, G3, R
 from functools import partial
-from .main import ensemble_fit_funcarray
+from .main import ensemble_fit
 
 
 def filter_G3(xdata, ydata, xlims, stdmax=np.inf, data_axis=0):
@@ -75,7 +75,7 @@ def fit_G3(
         G3_time, G3_data, G3_tlim
     )
 
-    G3_fit_mean, G3_fit_params, G3_fit_χ2ν, dof = ensemble_fit_funcarray(
+    G3_fit_mean, G3_fit_params, G3_fit_χ2ν, dof = ensemble_fit(
         G3_func_mean, G3_func_array, G3_time_fit, G3_data_fit, guess
     )
 
@@ -164,7 +164,7 @@ def fit_G3_ratio_func(
         G3_time, G3_data, G3_tlim
     )
 
-    G3_fit_mean, G3_fit_params, G3_fit_χ2ν, dof = ensemble_fit_funcarray(
+    G3_fit_mean, G3_fit_params, G3_fit_χ2ν, dof = ensemble_fit(
         G3_func_mean, G3_func_array, G3_time_fit, G3_data_fit, guess
     )
 

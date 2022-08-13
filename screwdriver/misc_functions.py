@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import collections
+import matplotlib.pyplot as plt
 
 
 def check_inside(points, vertices, include_boundary=True):
@@ -113,3 +114,6 @@ def wherein(y, x):
     result = np.ma.array(yindex, mask=mask)
     return result
 
+
+def get_colour(ax):
+    return next(ax._get_lines.prop_cycler)["color"]

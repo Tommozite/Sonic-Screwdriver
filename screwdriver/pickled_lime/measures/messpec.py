@@ -3,10 +3,9 @@ import xml.etree.ElementTree as ET
 from .. import core_functions as cf
 import os
 import itertools
-import dill as pickle
+import pickle
 from psutil import virtual_memory
 from .. import readers
-from ... import formatting
 from .. import names
 
 
@@ -62,7 +61,7 @@ def mesons_bin_slicer(
     record = np.frombuffer(record, ">f8").reshape(16, 16, num_mom, lat_size[3], 2)
 
     for n, p in enumerate(mom_list):
-        mom_string = formatting.format_mom(p)
+        mom_string = format_mom(p)
 
         for γ1, γ2 in itertools.product(range(16), range(16)):
             γ_string = f"{names.γ_names[γ1]}-{names.γ_names[γ2]}"
@@ -168,7 +167,10 @@ def write_messpec(data, loc, emergency_dumps):
             out_data = output
         out_data = np.array(out_data)
         ncfg = len(out_data)
-        out_name = f"messpec_{attr[5]}_{ncfg}cfgs.pickle"
+        out_name = f"messpec_{attr[5]}.pickle"
         with open(out_dir + out_name, "wb") as file_out:
             pickle.dump(out_data, file_out)
 
+
+def format_mom(mom):
+    return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])

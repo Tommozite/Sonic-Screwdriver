@@ -62,6 +62,7 @@ def unpack_limes(
                 data_out[key].append(value)
             else:
                 data_out[key] = [value]
-
+    if not data_out:
+        print("No data found matching filters in input files")
     measure.writer(data_out, loc, emergency_dump_count)
 

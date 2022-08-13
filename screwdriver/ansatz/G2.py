@@ -8,6 +8,8 @@ def G2_get_fit_func(G2_fit_func, **kwargs):
         return G2_1exp(**kwargs)
     elif G2_fit_func == "1exp_centered":
         return G2_1exp_centered(**kwargs)
+    elif G2_fit_func == "1exp_centered_fh":
+        return G2_1exp_centered_fh(**kwargs)
     elif G2_fit_func == "2exp":
         return G2_2exp(**kwargs)
     else:

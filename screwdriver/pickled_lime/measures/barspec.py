@@ -2,10 +2,9 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from .. import core_functions as cf
 import os
-import dill as pickle
+import pickle
 from psutil import virtual_memory
 from .. import readers
-from ... import formatting
 from .. import names
 
 
@@ -69,7 +68,7 @@ def baryons_bin_slicer(
     )
 
     for n, p in enumerate(mom_list):
-        mom_string = formatting.format_mom(p)
+        mom_string = format_mom(p)
 
         for b in range(baryon_number):
             bar_string = names.baryon_names[b]
@@ -210,7 +209,10 @@ def write_barspec(data, loc, emergency_dumps):
             out_data = output
         out_data = np.array(out_data)
         ncfg = len(out_data)
-        out_name = f"barspec_{attr[5]}_{ncfg}cfgs.pickle"
+        out_name = f"barspec_{attr[5]}.pickle"
         with open(out_dir + out_name, "wb") as file_out:
             pickle.dump(out_data, file_out)
 
+
+def format_mom(mom):
+    return "p" + "".join([f"{mom_i:+d}" for mom_i in mom])
