@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import base64
 
 from . import tang
 
@@ -33,7 +34,7 @@ class Capture:
         if self.binary is None:
             self.binary_arr()
         if mask is None:
-            data = self.binary
+            data = self.binary[[f"Bit {i}" for i in range(64)]]
             ids = self.data["ID"]
         else:
             data = self.binary[mask]
@@ -193,4 +194,40 @@ class CaptureCanKing(Capture):
         result.columns = ["ID", "Hex", "Time Epoch"]
         result["Time Seconds"] = result["Time Epoch"] - result["Time Epoch"].min()
         result["Timestamp"] = pd.to_datetime(result["Time Epoch"], unit="s")
+        return result
+
+
+class CaptureCSV(Capture):
+    def __init__(self, file):
+        super().__init__()
+        self.data = self.read_csv(file)
+        self.ids = np.sort(self.data["ID"].unique())
+        # self.binary_arr()
+        # self.integer_arr()
+
+    def read_csv(self, file):
+        result = pd.read_csv(file)
+        result = result.rename(
+            columns={
+                "timestamp": "Time Epoch",
+                "arbitration_id": "ID",
+                "dlc": "DLC",
+                "data": "Hex",
+                "error": "Error",
+                "extended": "Extended",
+                "remote": "Remote",
+            }
+        )
+        hex_chars = "abcdef"
+        upper_map = str.maketrans(hex_chars, hex_chars.upper())
+        result["Hex"] = "0x" + (
+            result["Hex"]
+            .apply(base64.b64decode)
+            .apply(base64.b16encode)
+            .apply(bytes.decode, args=("utf-8",))
+        )
+        result["ID"] = result["ID"].astype("string")
+        result["ID int"] = result["ID"].apply(int, base=16)
+        result["Timestamp"] = pd.to_datetime(result["Time Epoch"], unit="s")
+        result["Time Seconds"] = result["Time Epoch"] - result["Time Epoch"].min()
         return result
