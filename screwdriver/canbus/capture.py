@@ -231,3 +231,14 @@ class CaptureCSV(Capture):
         result["Timestamp"] = pd.to_datetime(result["Time Epoch"], unit="s")
         result["Time Seconds"] = result["Time Epoch"] - result["Time Epoch"].min()
         return result
+
+class CaptureQt(Capture):
+    def __init__(self, file):
+        super().__init__()
+        self.data = self.read_log(file)
+        self.ids = np.sort(self.data["ID"].unique())
+
+    def read_log(self,file):
+        result = pd.read_csv(file, header=None, names=["Time Epoch", "ID", "DLC", "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"], delim_whitespace=True)
+        print(result.head())
+        return result
