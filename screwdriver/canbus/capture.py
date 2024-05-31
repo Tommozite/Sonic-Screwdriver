@@ -25,7 +25,7 @@ class Capture:
             columns=[f"Bit {i}" for i in range(64)],
         )
         self.binary["ID"] = self.data["ID"]
-        self.binary["Time Seconds"] = self.data["Time Seconds"]
+        # self.binary["Time Seconds"] = self.data["Time Seconds"]
         self.binary["Time Epoch"] = self.data["Time Epoch"]
         self.binary["Timestamp"] = self.data["Timestamp"]
 
@@ -232,13 +232,34 @@ class CaptureCSV(Capture):
         result["Time Seconds"] = result["Time Epoch"] - result["Time Epoch"].min()
         return result
 
+
 class CaptureQt(Capture):
     def __init__(self, file):
         super().__init__()
         self.data = self.read_log(file)
         self.ids = np.sort(self.data["ID"].unique())
 
-    def read_log(self,file):
-        result = pd.read_csv(file, header=None, names=["Time Epoch", "ID", "DLC", "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"], delim_whitespace=True)
-        print(result.head())
+    def read_log(self, file):
+        result = pd.read_csv(
+            file,
+            header=None,
+            names=[
+                "Time Epoch",
+                "ID",
+                "DLC",
+                "D0",
+                "D1",
+                "D2",
+                "D3",
+                "D4",
+                "D5",
+                "D6",
+                "D7",
+            ],
+            delim_whitespace=True,
+            dtype=str,
+        ).fillna("")
+        result["Hex"] = "0x" + result[[f"D{i}" for i in range(8)]].sum(axis=1)
+        result["Timestamp"] = pd.to_datetime(result["Time Epoch"], unit="s")
+        # result["Hex"] = "0x" + sum([result[f"D{i}"] for i in range(8)])
         return result

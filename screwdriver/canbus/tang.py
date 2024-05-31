@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import datetime
+from . import binary_arr
 
 
 def rolling_tang_binned(capture, bin_interval=100):
@@ -91,6 +92,8 @@ def _tang_helper(data):
 
 
 def calc_tang(capture, mask=None):
+    if type(capture) == pd.DataFrame:
+        return _calc_tang_dataframe(capture)
     result = []
     if capture.binary is None:
         capture.binary_arr()
@@ -107,6 +110,20 @@ def calc_tang(capture, mask=None):
     result = pd.DataFrame(result, columns=["ID", *[f"Bit {i}" for i in range(64)]])
     if mask is None:
         capture.tang = result
+    return result
+
+
+def _calc_tang_dataframe(df):
+    result = []
+    binary = binary_arr.binary_arr(df)
+    data = binary[[f"Bit {i}" for i in range(64)]]
+    ids = binary["ID"]
+    for id in ids.unique():
+        tmp = data[(ids == id).to_numpy()]
+        tang = np.abs(np.roll(tmp, 1, axis=0) - tmp).mean(axis=0)
+        result.append([id, *tang])
+    result = pd.DataFrame(result, columns=["ID", *[f"Bit {i}" for i in range(64)]])
+    result = result.sort_values(by="ID")
     return result
 
 
