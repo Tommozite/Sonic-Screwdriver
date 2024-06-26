@@ -19,7 +19,7 @@ def binary_arr(data):
     # print(data["ID"])
     binary["ID"] = data["ID"].values
     # self.binary["Time Seconds"] = self.data["Time Seconds"]
-    # binary["Time Epoch"] = data["Time Epoch"]
+    binary["Time Epoch"] = data["Time Epoch"].values
     binary["Timestamp"] = data["Timestamp"].values
 
     return binary

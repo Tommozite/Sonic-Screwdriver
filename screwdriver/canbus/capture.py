@@ -68,20 +68,39 @@ class Capture:
         result = tang.calc_tang(self, mask)
         return result
 
-    def _integer_arr_helper(self, data):
+    def _integer_arr_helper(self, data, Nbytes):
+        lens = 2 * Nbytes
         return np.concatenate(
             [
-                np.array([int(a + b, 16) for a, b in zip(data[2::2], data[3::2])]),
-                np.array([0] * (8 - (len(data[2:]) // 2))),
+                # np.array([int(a + b, 16) for a, b in zip(data[2::2], data[3::2])])
+                np.array(
+                    [
+                        int(data[(2 + i * (lens)) : (2 + (i + 1) * lens)], 16)
+                        for i in range(len(data[2:]) // (lens))
+                    ]
+                ),
+                np.array([0] * ((16 - len(data[2:])) // lens)),
             ]
         )
 
-    def integer_arr(self):
+    def integer_arr(self, Nbytes=1):
+        if not (Nbytes in [1, 2, 4, 8]):
+            raise ValueError("Nbytes must be 1, 2, 4 or 8")
+        tmp = self.data["Hex"].to_numpy()
         self.integer = pd.DataFrame(
-            np.array(list(map(self._integer_arr_helper, self.data["Hex"].to_numpy()))),
-            columns=[f"Byte {i}" for i in range(8)],
+            np.array(
+                list(
+                    map(
+                        self._integer_arr_helper,
+                        tmp,
+                        Nbytes * np.ones_like(tmp),
+                    )
+                )
+            ),
+            columns=[f"Int {i}" for i in range(8 // Nbytes)],
         )
         self.integer["ID"] = self.data["ID"]
+        self.integer["Time Epoch"] = self.data["Time Epoch"].astype(float)
         self.integer["Timestamp"] = self.data["Timestamp"]
 
     def simple_matching_coeff(self, event_mask):
