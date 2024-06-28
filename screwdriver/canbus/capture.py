@@ -282,3 +282,18 @@ class CaptureQt(Capture):
         result["Timestamp"] = pd.to_datetime(result["Time Epoch"], unit="s")
         # result["Hex"] = "0x" + sum([result[f"D{i}"] for i in range(8)])
         return result
+
+
+class CaptureHDF(Capture):
+    def __init__(self, file):
+        super().__init__()
+        self.data = self.read_log(file)
+        self.ids = np.sort(self.data["ID"].unique())
+
+    def read_log(self, file):
+        result = pd.read_hdf(
+            file,
+        )
+        result["Timestamp"] = pd.to_datetime(result["Time Epoch"], unit="s")
+        # result["Hex"] = "0x" + sum([result[f"D{i}"] for i in range(8)])
+        return result
