@@ -170,7 +170,7 @@ class CaptureCanUtils(Capture):
         result = []
         with open(logfile, "r") as f:
             for line in f:
-                time, _, packet = line.rstrip("\n").split(" ")
+                time, _, packet, _ = line.rstrip("\n").split(" ")
                 time = float(time.lstrip("(").rstrip(")"))
                 can_id, can_data = packet.split("#")
                 can_id = "0x" + can_id

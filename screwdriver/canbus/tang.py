@@ -31,8 +31,8 @@ def _rolling_tang_binned_helper(capture, int_min, int_max):
     result = []
     if type(int_min) == pd.Timestamp:
         temp = capture.binary[
-            (capture.binary["Timestamp"] > int_min)
-            & (capture.binary["Timestamp"] < int_max)
+            (capture.binary["TimeEpoch"] > int_min)
+            & (capture.binary["TimeEpoch"] < int_max)
         ]
     elif type(int_min) == int:
         temp = capture.binary.iloc[int_min : int_max + 1]
@@ -43,19 +43,16 @@ def _rolling_tang_binned_helper(capture, int_min, int_max):
             result.append(tang.loc[id].to_list())
         except KeyError:
             result.append([0] * 64)
-    result = pd.DataFrame(result, columns=[f"Bit {i}" for i in range(64)])
+    result = pd.DataFrame(result, columns=[f"Bit{i}" for i in range(64)])
     result["ID"] = capture.ids
     return result
 
 
 def rolling_tang(capture, interval=1):
     result = []
-    if capture.binary is None:
-        capture.binary_arr()
-    temp = capture.binary
-    temp = temp.sort_values("Timestamp")
+    capture = capture.sort_values("TimeEpoch")
     result = []
-    for i, window in enumerate(temp.rolling(interval, on="Timestamp")):
+    for i, window in enumerate(capture.rolling(interval, on="TimeEpoch")):
         result.append(_rolling_tang_helper(window))
     result = pd.DataFrame(
         result,

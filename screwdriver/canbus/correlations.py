@@ -4,9 +4,9 @@ from .capture import Capture
 
 
 def pearson(X, Y):
-    cov = np.cov(X, Y)
-    std_X = np.std(X)
-    std_Y = np.std(Y)
+    cov = np.mean((X - np.mean(X, axis=0)) * (Y - np.mean(Y, axis=0)), axis=0)
+    std_X = np.std(X, axis=0) + 1e-6
+    std_Y = np.std(Y, axis=0) + 1e-6
     coeff = cov / (std_X * std_Y)
     return coeff
 
