@@ -49,3 +49,21 @@ class GPS:
             acc[i] = fit_x[0], fit_y[0], acc_long, acc_tran
         self.data[["vel_x", "vel_y", "vel"]] = vel
         self.data[["acc_x", "acc_y", "acc_long", "acc_tran"]] = acc
+
+    def linear_interpolate_lonlat(self, time_arr):
+        curr_ind = 0
+        curr_rows = None
+        result = np.empty((len(time_arr), 2))
+        for it, time in enumerate(time_arr):
+            time_ind = self.data["Time"][self.data["Time"] < time].idxmax()
+            if time_ind != curr_ind or curr_rows is None:
+                curr_ind = time_ind
+                curr_rows = [self.data.iloc[curr_ind], self.data.iloc[curr_ind + 1]]
+            time_pos = time * (
+                1 / (curr_rows[1]["Time"] - curr_rows[0]["Time"])
+            ) - curr_rows[0]["Time"] / (curr_rows[1]["Time"] - curr_rows[0]["Time"])
+            for il, l in enumerate(["Lon", "Lat"]):
+                result[it, il] = curr_rows[0][l] + time_pos * (
+                    curr_rows[1][l] - curr_rows[0][l]
+                )
+        return result
